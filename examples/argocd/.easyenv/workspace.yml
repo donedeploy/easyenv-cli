@@ -1,0 +1,32 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-argocd
+  description: 3-node Kubernetes Cluster recipe (k3s pre-baked) with the argocd catalog stack on the primary.
+spec:
+  duration: 4
+  duration_unit: hours
+  cross_connection: true
+  machines:
+    - title: k8s-1
+      recipe: Kubernetes Cluster
+      resources:
+        cpu: 4
+        ram_mb: 4096
+        storage_gb: 40
+      stacks:
+        - recipe: argocd
+
+    - title: k8s-2
+      recipe: Kubernetes Cluster
+      resources:
+        cpu: 2
+        ram_mb: 4096
+        storage_gb: 40
+
+    - title: k8s-3
+      recipe: Kubernetes Cluster
+      resources:
+        cpu: 2
+        ram_mb: 4096
+        storage_gb: 40

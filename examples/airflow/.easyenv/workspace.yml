@@ -1,0 +1,101 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-airflow
+  description: Apache Airflow on docker-compose, with a sample DAG synced from the project tree.
+spec:
+  duration: 4
+  duration_unit: hours
+  machines:
+    - title: airflow
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 4
+        ram_mb: 8192
+        storage_gb: 40
+      ports:
+        - "8080"
+      stacks:
+        - title: prepare-dags-dir
+          runner: bash
+          script: |
+            set -e
+            mkdir -p /home/easyenv/project/dags /home/easyenv/project/logs /home/easyenv/project/plugins
+            chown -R easyenv:easyenv /home/easyenv/project
+
+        - recipe: docker-compose
+          vars:
+            script: |
+              x-airflow-common: &airflow-common
+                image: apache/airflow:2.10.5
+                environment: &airflow-env
+                  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+                  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+                  AIRFLOW__CORE__FERNET_KEY: ''
+                  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+                  AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+                  AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+                  _PIP_ADDITIONAL_REQUIREMENTS: ''
+                volumes:
+                  - /home/easyenv/project/dags:/opt/airflow/dags
+                  - /home/easyenv/project/logs:/opt/airflow/logs
+                  - /home/easyenv/project/plugins:/opt/airflow/plugins
+                user: "50000:0"
+                depends_on:
+                  postgres:
+                    condition: service_healthy
+
+              services:
+                postgres:
+                  image: postgres:13
+                  environment:
+                    POSTGRES_USER: airflow
+                    POSTGRES_PASSWORD: airflow
+                    POSTGRES_DB: airflow
+                  volumes:
+                    - postgres-db-volume:/var/lib/postgresql/data
+                  healthcheck:
+                    test: ["CMD", "pg_isready", "-U", "airflow"]
+                    interval: 5s
+                    retries: 5
+                  restart: always
+
+                airflow-init:
+                  <<: *airflow-common
+                  entrypoint: /bin/bash
+                  command:
+                    - -c
+                    - |
+                      airflow db migrate
+                      airflow users create \
+                        --username airflow \
+                        --password airflow \
+                        --firstname Air \
+                        --lastname Flow \
+                        --role Admin \
+                        --email airflow@example.com || true
+
+                airflow-webserver:
+                  <<: *airflow-common
+                  command: webserver
+                  ports:
+                    - "8080:8080"
+                  restart: always
+                  depends_on:
+                    airflow-init:
+                      condition: service_completed_successfully
+                    postgres:
+                      condition: service_healthy
+
+                airflow-scheduler:
+                  <<: *airflow-common
+                  command: scheduler
+                  restart: always
+                  depends_on:
+                    airflow-init:
+                      condition: service_completed_successfully
+                    postgres:
+                      condition: service_healthy
+
+              volumes:
+                postgres-db-volume:

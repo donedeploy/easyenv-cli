@@ -1,0 +1,124 @@
+---
+# Configure streaming replication: primary accepts replicator connections,
+# replicas pg_basebackup from the primary and stream WAL.
+#
+# Idempotency: the primary play is naturally idempotent (lineinfile + role
+# create-or-do-nothing). The replica play guards on a marker file so we
+# don't re-basebackup an already-replicating standby.
+
+- name: Configure primary
+  hosts: primary
+  become: yes
+  vars:
+    pg_conf: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+    pg_hba:  "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+  tasks:
+    - name: postgresql.conf — listen on all interfaces
+      lineinfile:
+        path: "{{ pg_conf }}"
+        regexp: "^#?listen_addresses"
+        line: "listen_addresses = '*'"
+      notify: restart postgresql
+
+    - name: postgresql.conf — wal_level
+      lineinfile:
+        path: "{{ pg_conf }}"
+        regexp: "^#?wal_level"
+        line: "wal_level = replica"
+      notify: restart postgresql
+
+    - name: postgresql.conf — max_wal_senders
+      lineinfile:
+        path: "{{ pg_conf }}"
+        regexp: "^#?max_wal_senders"
+        line: "max_wal_senders = 10"
+      notify: restart postgresql
+
+    - name: postgresql.conf — hot_standby
+      lineinfile:
+        path: "{{ pg_conf }}"
+        regexp: "^#?hot_standby"
+        line: "hot_standby = on"
+      notify: restart postgresql
+
+    - name: pg_hba.conf — replication entries for replicas
+      blockinfile:
+        path: "{{ pg_hba }}"
+        marker: "# {mark} ANSIBLE MANAGED REPLICATION"
+        block: |
+          host replication replicator pg-replica-1/32 md5
+          host replication replicator pg-replica-2/32 md5
+          host all          all        0.0.0.0/0      md5
+      notify: restart postgresql
+
+    - name: Create replicator role
+      become_user: postgres
+      shell: |
+        psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='replicator'" | grep -q 1 \
+          || psql -c "CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '{{ replicator_password }}';"
+      changed_when: false
+
+  handlers:
+    - name: restart postgresql
+      service:
+        name: postgresql
+        state: restarted
+
+- name: Configure replicas
+  hosts: replicas
+  become: yes
+  vars:
+    pg_data: "/var/lib/postgresql/{{ pg_version }}/main"
+    marker:  "/var/lib/postgresql/.easyenv-replica-bootstrapped"
+  tasks:
+    - name: Wait for primary to accept connections
+      wait_for:
+        host: pg-primary
+        port: 5432
+        timeout: 300
+
+    - name: Stop postgresql
+      service:
+        name: postgresql
+        state: stopped
+
+    - name: Detect bootstrap marker
+      stat:
+        path: "{{ marker }}"
+      register: bootstrap_marker
+
+    - name: Wipe data dir (only on first bootstrap)
+      file:
+        path: "{{ pg_data }}"
+        state: absent
+      when: not bootstrap_marker.stat.exists
+
+    - name: Recreate data dir owned by postgres
+      file:
+        path: "{{ pg_data }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+      when: not bootstrap_marker.stat.exists
+
+    - name: pg_basebackup from primary
+      become_user: postgres
+      shell: |
+        PGPASSWORD='{{ replicator_password }}' \
+          pg_basebackup -h pg-primary -U replicator \
+            -D {{ pg_data }} -X stream -R -P
+      when: not bootstrap_marker.stat.exists
+
+    - name: Drop bootstrap marker
+      file:
+        path: "{{ marker }}"
+        state: touch
+        owner: postgres
+        group: postgres
+      when: not bootstrap_marker.stat.exists
+
+    - name: Start postgresql
+      service:
+        name: postgresql
+        state: started

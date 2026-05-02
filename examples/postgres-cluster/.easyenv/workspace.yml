@@ -1,0 +1,69 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-postgres-cluster
+  description: PostgreSQL primary + 2 streaming replicas, configured via inline ansible.
+spec:
+  duration: 4
+  duration_unit: hours
+  cross_connection: true
+  machines:
+    - title: pg-primary
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      stacks:
+        - title: install-postgres-and-ansible
+          runner: ansible
+          playbook: |
+            - hosts: localhost
+              become: yes
+              tasks:
+                - apt:
+                    name:
+                      - postgresql-16
+                      - ansible
+                    state: present
+                    update_cache: yes
+                - service:
+                    name: postgresql
+                    state: started
+                    enabled: yes
+
+    - title: pg-replica-1
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      stacks:
+        - title: install-postgres
+          runner: ansible
+          playbook: |
+            - hosts: localhost
+              become: yes
+              tasks:
+                - apt:
+                    name: postgresql-16
+                    state: present
+                    update_cache: yes
+
+    - title: pg-replica-2
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      stacks:
+        - title: install-postgres
+          runner: ansible
+          playbook: |
+            - hosts: localhost
+              become: yes
+              tasks:
+                - apt:
+                    name: postgresql-16
+                    state: present
+                    update_cache: yes

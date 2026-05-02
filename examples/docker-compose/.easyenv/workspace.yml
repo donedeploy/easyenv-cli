@@ -1,0 +1,35 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-docker-compose
+  description: Ubuntu box running redis + redis-commander via the docker-compose stack.
+spec:
+  duration: 2
+  duration_unit: hours
+  machines:
+    - title: app
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      ports:
+        - "8081"
+      stacks:
+        - recipe: docker-compose
+          vars:
+            script: |
+              services:
+                redis:
+                  image: redis:7-alpine
+                  restart: unless-stopped
+
+                commander:
+                  image: rediscommander/redis-commander:latest
+                  restart: unless-stopped
+                  environment:
+                    REDIS_HOSTS: local:redis:6379
+                  ports:
+                    - "8081:8081"
+                  depends_on:
+                    - redis

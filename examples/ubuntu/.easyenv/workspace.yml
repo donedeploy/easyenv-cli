@@ -1,0 +1,15 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-ubuntu
+  description: One plain Ubuntu box. The minimal workspace.yml.
+spec:
+  duration: 2
+  duration_unit: hours
+  machines:
+    - title: dev
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20

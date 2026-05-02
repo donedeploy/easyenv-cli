@@ -1,0 +1,23 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-flask
+  description: Python Dev Env with Flask installed via an inline bash stack.
+spec:
+  duration: 2
+  duration_unit: hours
+  machines:
+    - title: app
+      recipe: Python Dev Env
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      ports:
+        - "5000"
+      stacks:
+        - title: install-flask
+          runner: bash
+          script: |
+            set -e
+            pip install --break-system-packages flask

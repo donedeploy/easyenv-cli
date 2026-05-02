@@ -1,0 +1,21 @@
+apiVersion: easyenv.io/v1
+kind: Workspace
+metadata:
+  title: example-docker-image
+  description: Ubuntu box that pulls and runs nginx via the docker-run stack.
+spec:
+  duration: 2
+  duration_unit: hours
+  machines:
+    - title: app
+      recipe: Ubuntu 24.04 LTS
+      resources:
+        cpu: 2
+        ram_mb: 2048
+        storage_gb: 20
+      ports:
+        - "80"
+      stacks:
+        - recipe: docker-run
+          vars:
+            image: nginx:latest
