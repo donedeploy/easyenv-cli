@@ -66,7 +66,7 @@ spec:
         - title: install-kubespray
           runner: bash
           script: |
-            apt-get install -y python3-venv git rsync sshpass
+            apt-get install -y python3-venv git rsync sshpass make
             git clone --depth 1 -b release-2.29 \
               https://github.com/kubernetes-sigs/kubespray.git /opt/kubespray
             ...

@@ -24,6 +24,7 @@ spec:
                     name:
                       - postgresql-16
                       - ansible
+                      - make
                     state: present
                     update_cache: yes
                 - service:

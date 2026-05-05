@@ -19,4 +19,6 @@ spec:
           runner: bash
           script: |
             set -e
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get install -y -qq make
             pip install --break-system-packages flask

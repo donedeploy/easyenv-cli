@@ -54,7 +54,7 @@ machines:
           - hosts: localhost
             become: yes
             tasks:
-              - apt: { name: [postgresql-16, ansible], state: present }
+              - apt: { name: [postgresql-16, ansible, make], state: present }
               - service: { name: postgresql, state: started }
 ```
 
