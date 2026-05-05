@@ -6,36 +6,40 @@ The `easyenv` CLI is distributed as a static binary on GitHub Releases. Pick you
 
 ```sh
 # Detect latest version
-VERSION=$(curl -fsSL https://api.github.com/repos/easyenv/cli/releases/latest \
-  | grep -oE '"tag_name":\s*"easyenv-v[^"]+"' | sed -E 's/.*easyenv-v([^"]+).*/\1/')
+VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
+  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 
 # amd64
-curl -fsSL "https://github.com/easyenv/cli/releases/download/easyenv-v${VERSION}/easyenv_${VERSION}_linux_amd64.tar.gz" \
-  | sudo tar -xz -C /usr/local/bin easyenv
+sudo curl -fsSL -o /usr/local/bin/easyenv \
+  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_amd64"
+sudo chmod +x /usr/local/bin/easyenv
 
 # arm64
-curl -fsSL "https://github.com/easyenv/cli/releases/download/easyenv-v${VERSION}/easyenv_${VERSION}_linux_arm64.tar.gz" \
-  | sudo tar -xz -C /usr/local/bin easyenv
+sudo curl -fsSL -o /usr/local/bin/easyenv \
+  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_arm64"
+sudo chmod +x /usr/local/bin/easyenv
 ```
 
 ## macOS
 
 ```sh
-VERSION=$(curl -fsSL https://api.github.com/repos/easyenv/cli/releases/latest \
-  | grep -oE '"tag_name":\s*"easyenv-v[^"]+"' | sed -E 's/.*easyenv-v([^"]+).*/\1/')
+VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
+  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
 
 # Apple Silicon (arm64)
-curl -fsSL "https://github.com/easyenv/cli/releases/download/easyenv-v${VERSION}/easyenv_${VERSION}_darwin_arm64.tar.gz" \
-  | sudo tar -xz -C /usr/local/bin easyenv
+sudo curl -fsSL -o /usr/local/bin/easyenv \
+  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_darwin_arm64"
+sudo chmod +x /usr/local/bin/easyenv
 
 # Intel (amd64)
-curl -fsSL "https://github.com/easyenv/cli/releases/download/easyenv-v${VERSION}/easyenv_${VERSION}_darwin_amd64.tar.gz" \
-  | sudo tar -xz -C /usr/local/bin easyenv
+sudo curl -fsSL -o /usr/local/bin/easyenv \
+  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_darwin_amd64"
+sudo chmod +x /usr/local/bin/easyenv
 ```
 
 ## Windows
 
-Download the latest `easyenv_<version>_windows_amd64.zip` from the [releases page](https://github.com/easyenv/cli/releases/latest), unzip it, and put `easyenv.exe` somewhere on your `PATH` (for example `%USERPROFILE%\bin\` after adding that directory to `PATH`).
+Download the latest `easyenv_<version>_windows_amd64.exe` from the [releases page](https://github.com/donedeploy/easyenv-cli/releases/latest), rename it to `easyenv.exe`, and put it somewhere on your `PATH` (for example `%USERPROFILE%\bin\` after adding that directory to `PATH`).
 
 ## Verify
 
@@ -74,7 +78,7 @@ The CLI talks to easyenv.io with a service token.
 
 ## Environment variables (CI / scripting)
 
-Every config value can be overridden via env vars — handy in CI, where you don't want to write a config file.
+Every config value can be overridden via env vars, handy in CI where you don't want to write a config file.
 
 | Variable          | Overrides           | Default                    |
 |-------------------|---------------------|----------------------------|
@@ -83,7 +87,7 @@ Every config value can be overridden via env vars — handy in CI, where you don
 | `EASYENV_ACCOUNT` | active account UUID | (read from config.yaml)    |
 | `EASYENV_WEB_URL` | web console URL     | derived from `server`      |
 
-So a CI job needs zero config files — just set those three:
+So a CI job needs zero config files, just set those three:
 
 ```sh
 EASYENV_TOKEN=xxx EASYENV_ACCOUNT=yyy easyenv ws list
@@ -91,7 +95,7 @@ EASYENV_TOKEN=xxx EASYENV_ACCOUNT=yyy easyenv ws list
 
 ## Config file
 
-Path: `$XDG_CONFIG_HOME/easyenv/config.yaml`, default `~/.config/easyenv/config.yaml`. Mode `0600` (token is a long-lived credential — keep it tight).
+Path: `$XDG_CONFIG_HOME/easyenv/config.yaml`, default `~/.config/easyenv/config.yaml`. Mode `0600` (token is a long-lived credential, keep it tight).
 
 ```yaml
 server: https://api.easyenv.io
@@ -105,4 +109,4 @@ Settings can be edited with `easyenv config set <key> <value>` / `easyenv config
 
 ## Updating
 
-There is no built-in self-update yet — re-run the install one-liner above. The binary is a single static file; replacing it in place is safe.
+There is no built-in self-update yet, re-run the install one-liner above. The binary is a single static file; replacing it in place is safe.

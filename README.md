@@ -1,25 +1,26 @@
 # easyenv-cli
 
-Official examples and CLI reference for [easyenv.io](https://easyenv.io) — the platform for ephemeral, on-demand development environments and technical assessments.
+Official examples and CLI reference for [easyenv.io](https://easyenv.io), the platform for ephemeral, on-demand development environments and technical assessments.
 
 The `easyenv` CLI is how you drive easyenv.io from your terminal: spin workspaces up, push your code, expose ports, tear them down. This repo gives you a place to start.
 
-- [`docs/install.md`](docs/install.md) — install the CLI on macOS / Linux / Windows
-- [`docs/commands.md`](docs/commands.md) — every command and flag
-- [`docs/workspace-yml.md`](docs/workspace-yml.md) — `.easyenv/workspace.yml` schema reference
-- [`docs/stacks.md`](docs/stacks.md) — catalog stack recipes vs inline stacks
-- [`examples/`](examples/) — nine ready-to-run sample projects
+- [`docs/install.md`](docs/install.md) - install the CLI on macOS / Linux / Windows
+- [`docs/commands.md`](docs/commands.md) - every command and flag
+- [`docs/workspace-yml.md`](docs/workspace-yml.md) - `.easyenv/workspace.yml` schema reference
+- [`docs/stacks.md`](docs/stacks.md) - catalog stack recipes vs inline stacks
+- [`examples/`](examples/) - nine ready-to-run sample projects
 
 ## Install
 
-Download a pre-built binary from [github.com/easyenv/cli/releases](https://github.com/easyenv/cli/releases):
+Download a pre-built binary from [github.com/donedeploy/easyenv-cli/releases](https://github.com/donedeploy/easyenv-cli/releases):
 
 ```sh
 # Linux (amd64)
-VERSION=$(curl -fsSL https://api.github.com/repos/easyenv/cli/releases/latest \
-  | grep -oE '"tag_name":\s*"easyenv-v[^"]+"' | sed -E 's/.*easyenv-v([^"]+).*/\1/')
-curl -fsSL "https://github.com/easyenv/cli/releases/download/easyenv-v${VERSION}/easyenv_${VERSION}_linux_amd64.tar.gz" \
-  | sudo tar -xz -C /usr/local/bin easyenv
+VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
+  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+sudo curl -fsSL -o /usr/local/bin/easyenv \
+  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_amd64"
+sudo chmod +x /usr/local/bin/easyenv
 easyenv --version
 ```
 
@@ -42,7 +43,7 @@ For macOS, Windows, and arm64, see [`docs/install.md`](docs/install.md).
    easyenv auth whoami
    ```
 
-Your config lives at `~/.config/easyenv/config.yaml` (mode 0600). All settings can also be overridden via `EASYENV_SERVER`, `EASYENV_TOKEN`, `EASYENV_ACCOUNT` env vars — useful in CI.
+Your config lives at `~/.config/easyenv/config.yaml` (mode 0600). All settings can also be overridden via `EASYENV_SERVER`, `EASYENV_TOKEN`, `EASYENV_ACCOUNT` env vars, useful in CI.
 
 ## 30-second tour
 
@@ -67,6 +68,6 @@ You're in. `exit` to drop back, then `easyenv here down --force` to tear it down
 
 ## Links
 
-- Web app — [easyenv.io](https://easyenv.io)
-- Product docs — [easyenv.io/docs](https://easyenv.io/docs)
-- Support / feedback — open an issue on this repo
+- Web app: [easyenv.io](https://easyenv.io)
+- Product docs: [easyenv.io/docs](https://easyenv.io/docs)
+- Support / feedback: open an issue on this repo
