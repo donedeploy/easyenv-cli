@@ -13,7 +13,6 @@ spec:
       resources:
         cpu: 4
         ram_mb: 4096
-        storage_gb: 40
       stacks:
         - recipe: argocd
 
@@ -22,11 +21,9 @@ spec:
       resources:
         cpu: 2
         ram_mb: 4096
-        storage_gb: 40
 
     - title: k8s-3
       recipe: Kubernetes Cluster
       resources:
         cpu: 2
         ram_mb: 4096
-        storage_gb: 40

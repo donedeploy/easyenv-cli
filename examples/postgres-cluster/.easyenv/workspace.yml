@@ -13,7 +13,6 @@ spec:
       resources:
         cpu: 2
         ram_mb: 2048
-        storage_gb: 20
       stacks:
         - title: install-postgres-and-ansible
           runner: ansible
@@ -37,7 +36,6 @@ spec:
       resources:
         cpu: 2
         ram_mb: 2048
-        storage_gb: 20
       stacks:
         - title: install-postgres
           runner: ansible
@@ -55,7 +53,6 @@ spec:
       resources:
         cpu: 2
         ram_mb: 2048
-        storage_gb: 20
       stacks:
         - title: install-postgres
           runner: ansible

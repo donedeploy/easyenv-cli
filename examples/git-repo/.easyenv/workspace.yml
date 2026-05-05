@@ -12,7 +12,6 @@ spec:
       resources:
         cpu: 2
         ram_mb: 2048
-        storage_gb: 20
       git_repo: https://github.com/donedeploy/easyenv-cli
       ports:
         - "5000"

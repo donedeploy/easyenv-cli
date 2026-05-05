@@ -13,7 +13,6 @@ spec:
       resources:
         cpu: 4
         ram_mb: 4096
-        storage_gb: 40
       stacks:
         - title: install-kubespray
           runner: bash
@@ -36,11 +35,9 @@ spec:
       resources:
         cpu: 2
         ram_mb: 4096
-        storage_gb: 40
 
     - title: worker-2
       recipe: Ubuntu 24.04 LTS
       resources:
         cpu: 2
         ram_mb: 4096
-        storage_gb: 40
