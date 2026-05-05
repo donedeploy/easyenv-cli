@@ -8,7 +8,7 @@ One Ubuntu box. The `docker-run` catalog stack handles installing Docker, pullin
 - How `easyenv here expose` reads the `ports[]` annotation to forward localhost
 - How to swap the image (it's just a `vars` value)
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/docker-image

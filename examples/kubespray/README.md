@@ -19,7 +19,7 @@ The split this lab uses:
 
 The peer-wait inside `make deploy` is belt-and-suspenders — even if `here up --wait` reports active, individual boxes may have a minute of cloud-init left.
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/kubespray

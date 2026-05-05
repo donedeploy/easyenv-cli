@@ -7,7 +7,7 @@ One Ubuntu box runs Redis + Redis Commander defined in a compose script. Open th
 - How to feed a complete compose file to a stack via a `vars` value
 - How port forwarding works for a service published by Docker
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/docker-compose

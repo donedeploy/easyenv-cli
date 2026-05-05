@@ -8,7 +8,7 @@ One Python Dev Env box. An inline-bash stack installs Flask at boot. Your `app.p
 - The `easyenv here sync` workflow — push local files to the remote
 - How `easyenv here run` cd's into the project dir and runs `make run` for you
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/flask

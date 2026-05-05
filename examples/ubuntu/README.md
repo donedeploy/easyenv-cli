@@ -7,7 +7,7 @@ The smallest possible `.easyenv/workspace.yml`: one Ubuntu box, no stacks, no fu
 - The shape of a `workspace.yml` file
 - The four commands you'll use every day: `easyenv here up`, `ssh`, `expose`, `down`
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/ubuntu

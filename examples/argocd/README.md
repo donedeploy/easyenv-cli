@@ -7,7 +7,7 @@ Three boxes spun from the **Kubernetes Cluster** recipe (k3s already installed).
 - Composing a catalog stack on top of a pre-baked recipe
 - The difference between rolling your own (Kubespray) and using a recipe (this lab)
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/argocd

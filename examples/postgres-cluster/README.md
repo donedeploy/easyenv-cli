@@ -8,7 +8,7 @@ Three Ubuntu boxes. All three install PostgreSQL 16 at boot. The primary additio
 - The boot-vs-post-up split for cross-node setup — install at boot, configure when peers are ready
 - Driving an Ansible playbook on the primary via `easyenv here run`
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/postgres-cluster

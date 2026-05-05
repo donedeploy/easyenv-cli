@@ -7,7 +7,7 @@ Same Flask app as the [`flask`](../flask/) example, but the box clones the publi
 - How the `git_repo` field on a machine triggers cloud-init to clone on boot
 - When to use `git_repo` instead of `easyenv here sync` — and when not to
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/git-repo

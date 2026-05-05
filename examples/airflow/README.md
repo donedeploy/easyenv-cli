@@ -8,7 +8,7 @@ A real-world `docker-compose` stack: Airflow 2.10.5 with LocalExecutor + Postgre
 - Combining a prep stack (inline-bash) + a service stack (catalog) in the same workspace
 - Pushing assets onto a running stack via `easyenv here sync`
 
-## Quickstart
+## Quick start
 
 ```sh
 cd examples/airflow
