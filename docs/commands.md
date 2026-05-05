@@ -66,7 +66,7 @@ Workspaces are the unit of provisioning — one or more machines created from a 
 |-----------------------------|--------------------------------------------------|-------|
 | `list` (alias `ls`)         | List workspaces                                  | `--status`, `--search`, `--shared`, `--sort`, `--limit`, `--page` |
 | `get <ws>` (alias `describe`)| Describe a workspace by UUID                    |       |
-| `create`                    | Create a workspace from a YAML spec              | `--file`/`-f` (required), `--dry-run` |
+| `create`                    | Create a workspace from a YAML spec, template, or single recipe | `--file`/`-f`, `--template`, `--base`, `--name`, `--ttl`, `--dry-run` |
 | `delete <ws>` (alias `rm`)  | Soft-delete a workspace                          | `--force` |
 | `start <ws>`                | Start a workspace (async)                        |       |
 | `stop <ws>`                 | Stop a workspace                                 |       |
@@ -75,7 +75,26 @@ Workspaces are the unit of provisioning — one or more machines created from a 
 | `duplicate <ws>`            | Clone a workspace                                | `--title` |
 | `watch <ws>`                | Stream workspace + machine + stack status        | `--interval` (default `2s`) |
 
-`workspace create --dry-run` validates and resolves the spec without sending a request — handy for CI:
+`workspace create` accepts a YAML spec (`-f`), a template shortcut (`--template`), or a single-recipe shortcut (`--base`). The three modes are mutually exclusive.
+
+```sh
+# From a YAML spec
+easyenv ws create -f .easyenv/workspace.yml
+
+# From a template (looks up by UUID, falling back to exact title match)
+easyenv workspace create \
+  --template python_devenv \
+  --name review-pr-1284 \
+  --ttl 8h
+
+# From a single recipe (one-machine workspace)
+easyenv workspace create \
+  --base ubuntu \
+  --name scratch \
+  --ttl 2h
+```
+
+`--ttl` accepts `30s`, `5m`, `2h`, etc. (a bare integer is read as seconds). `--name` overrides the workspace title (default: the template's or recipe's title). Add `--dry-run` to validate and print the resolved request body without sending it, handy for CI:
 
 ```sh
 easyenv ws create -f .easyenv/workspace.yml --dry-run
