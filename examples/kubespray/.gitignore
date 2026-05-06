@@ -1,0 +1,2 @@
+# Local kubeconfig fetched by `make kube` — contains cluster credentials.
+kubeconfig

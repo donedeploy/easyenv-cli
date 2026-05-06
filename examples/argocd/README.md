@@ -2,18 +2,19 @@
 
 Three boxes spun from the **Kubernetes Cluster** recipe (k3s already installed). The `argocd` catalog stack drops ArgoCD onto the first node. No Kubespray, no Ansible — the recipe and the stack do everything.
 
-## What you'll learn
+## easyenv features used
 
-- Composing a catalog stack on top of a pre-baked recipe
-- The difference between rolling your own (Kubespray) and using a recipe (this lab)
+- **`Kubernetes Cluster` recipe** — k3s, kubectl, containerd pre-baked. Available via `easyenv recipe list`.
+- **`argocd` catalog stack** composed on top of a recipe (compatibility declared in the stack's `default_compatibility.recipes`). Browse with `easyenv stack list` for siblings: `helm`, `k9s`, `cert-manager`, `prometheus-grafana`, `traefik`, `cilium`.
+- **Multi-machine workspace** — three nodes; only the first carries the stack, the others auto-join the cluster via the recipe.
 
 ## Quick start
 
 ```sh
 cd examples/argocd
 
-easyenv here up --wait 10m
-easyenv here ssh
+make up
+make ssh
 ```
 
 You're on `k8s-1`. The cluster and ArgoCD are already running:
@@ -52,8 +53,20 @@ sudo kubectl -n argocd get secret argocd-initial-admin-secret \
 Tear down:
 
 ```sh
-easyenv here down --force
+make down
 ```
+
+## Make targets
+
+Each target echoes its underlying `easyenv` command before running.
+
+| Target | Runs | What it does |
+|--------|------|--------------|
+| `make up`     | `easyenv here up --wait 10m` | Create + start the 3-box workspace. The `argocd` stack `kubectl apply`s ArgoCD onto k8s-1 during boot. |
+| `make deploy` | (alias for `make up`)        | The catalog stack does everything during `up`; deploy is just an alias. |
+| `make ssh`    | `easyenv here ssh`           | Open an interactive shell on `k8s-1`. |
+| `make expose` | `easyenv here expose`        | No `ports[]` is set in this example by default — add one to `workspace.yml` first. |
+| `make down`   | `easyenv here down --force`  | Stop and delete the workspace. |
 
 ## How it works
 

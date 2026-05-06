@@ -2,17 +2,17 @@
 
 Same Flask app as the [`flask`](../flask/) example, but the box clones the public sample repo on first boot via the `git_repo` field. No `easyenv here sync` step — your code is already there when SSH opens.
 
-## What you'll learn
+## easyenv features used
 
-- How the `git_repo` field on a machine triggers cloud-init to clone on boot
-- When to use `git_repo` instead of `easyenv here sync` — and when not to
+- **`git_repo` field on a machine** — cloud-init clones the URL into `~/<repo-basename>` on first boot. Same field also redirects the "remote project dir" used by `easyenv here sync` and `easyenv here run`.
+- **`easyenv here expose`** + `ports[]` — forwards the app port to localhost once the app is running.
 
 ## Quick start
 
 ```sh
 cd examples/git-repo
-easyenv here up --wait 6m
-easyenv here ssh
+make up
+make ssh
 ```
 
 You're on the box. Look around:
@@ -26,7 +26,7 @@ python3 app.py &
 `Ctrl-C` to drop back, run `exit` to leave, then forward the port from your laptop:
 
 ```sh
-easyenv here expose &
+make expose &
 curl http://localhost:5000
 # → hello from git-repo
 ```
@@ -34,8 +34,20 @@ curl http://localhost:5000
 Tear down:
 
 ```sh
-easyenv here down --force
+make down
 ```
+
+## Make targets
+
+Each target echoes its underlying `easyenv` command before running.
+
+| Target | Runs | What it does |
+|--------|------|--------------|
+| `make up`     | `easyenv here up --wait 6m` | Create + start the box. Cloud-init clones the git repo on first boot; the inline stack installs Flask. |
+| `make deploy` | (alias for `make up`)       | Code arrives via `git_repo` at boot, so deploy = up. |
+| `make expose` | `easyenv here expose`       | Forward `ports[5000]` to localhost. |
+| `make ssh`    | `easyenv here ssh`          | Open an interactive shell on the box. |
+| `make down`   | `easyenv here down --force` | Stop and delete the workspace. |
 
 ## How it works
 

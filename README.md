@@ -50,11 +50,13 @@ Your config lives at `~/.config/easyenv/config.yaml` (mode 0600). All settings c
 ```sh
 git clone https://github.com/donedeploy/easyenv-cli.git
 cd easyenv-cli/examples/ubuntu
-easyenv here up --wait 5m
-easyenv here ssh
+make up
+make ssh
 ```
 
-You're in. `exit` to drop back, then `easyenv here down --force` to tear it down.
+You're in. `exit` to drop back, then `make down` to tear it down.
+
+Each example ships a `Makefile` that wraps the underlying `easyenv` commands and echoes them before running, so you can learn the raw form as you go.
 
 ## Examples
 

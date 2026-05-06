@@ -27,19 +27,20 @@ easyenv account current  # should print an account UUID
 
 ## The standard loop
 
-Every lab boils down to the same five commands:
+Every lab has a `Makefile` that wraps the underlying `easyenv` commands. The targets are consistent across labs — pick what's relevant:
 
 ```sh
 cd examples/<lab>
-easyenv here up --wait 10m   # create + start (idempotent — safe to re-run)
-easyenv here sync            # rsync local files to the box (skip for git-repo)
-easyenv here ssh             # interactive shell on the first machine
-easyenv here expose          # forward the workspace.yml ports[] to localhost
-easyenv here down --force    # stop + delete when you're done
+make up        # easyenv here up --wait <N>m   (idempotent — safe to re-run)
+make sync      # easyenv here sync             (where applicable)
+make deploy    # full provisioning — usually sync + a remote step
+make ssh       # easyenv here ssh
+make expose    # easyenv here expose
+make down      # easyenv here down --force
 ```
 
-The CLI walks up from your current directory to find `.easyenv/workspace.yml`, so you can run `easyenv here ...` from anywhere inside the lab folder.
+Each `make` target echoes the raw `easyenv` command before running it, so you can copy/paste once you've memorized the shape. The CLI walks up from your current directory to find `.easyenv/workspace.yml`, so you can run anything from anywhere inside the lab folder.
 
 ## Cleanup
 
-Workspaces auto-stop after their `duration` expires (set in each `workspace.yml`), but **they aren't deleted automatically**. Always run `easyenv here down --force` at the end, or `easyenv ws list` periodically to catch stragglers.
+Workspaces auto-stop after their `duration` expires (set in each `workspace.yml`), but **they aren't deleted automatically**. Always run `make down` at the end, or `easyenv ws list` periodically to catch stragglers.

@@ -13,22 +13,124 @@ spec:
       resources:
         cpu: 4
         ram_mb: 4096
+      ports:
+        - "6443"
       stacks:
         - title: install-kubespray
-          runner: bash
-          script: |
-            set -e
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update -qq
-            apt-get install -y -qq python3-venv git rsync sshpass make
-            if [ ! -d /opt/kubespray ]; then
-              git clone --depth 1 -b release-2.29 \
-                https://github.com/kubernetes-sigs/kubespray.git /opt/kubespray
-            fi
-            python3 -m venv /opt/kubespray/.venv
-            /opt/kubespray/.venv/bin/pip install --upgrade pip
-            /opt/kubespray/.venv/bin/pip install -r /opt/kubespray/requirements.txt
-            chown -R easyenv:easyenv /opt/kubespray
+          runner: ansible
+          playbook: |
+            - hosts: localhost
+              become: yes
+              vars:
+                kubespray_dir: /opt/kubespray
+                kubespray_branch: release-2.29
+                inventory_path: /home/easyenv/kubespray-inventory.yaml
+                box_configs_path: /etc/box_configs.json
+              tasks:
+                - name: Install build deps
+                  apt:
+                    name: [python3-venv, git, rsync, sshpass, make]
+                    state: present
+                    update_cache: yes
+
+                - name: Clone kubespray
+                  git:
+                    repo: https://github.com/kubernetes-sigs/kubespray.git
+                    dest: "{{ kubespray_dir }}"
+                    version: "{{ kubespray_branch }}"
+                    depth: 1
+                    update: no
+
+                - name: Install kubespray python deps into a venv
+                  pip:
+                    requirements: "{{ kubespray_dir }}/requirements.txt"
+                    virtualenv: "{{ kubespray_dir }}/.venv"
+                    virtualenv_command: python3 -m venv
+
+                - name: Hand kubespray over to easyenv user
+                  file:
+                    path: "{{ kubespray_dir }}"
+                    owner: easyenv
+                    group: easyenv
+                    recurse: yes
+
+                - name: Pre-create kubespray's fact cache dir (silences the rwx warning)
+                  file:
+                    path: /var/cache/ansible/facts
+                    state: directory
+                    owner: easyenv
+                    group: easyenv
+                    recurse: yes
+
+                # ----- Sibling discovery happens here, while the box token is fresh.
+                # The token has a 60-min lifetime and no refresh, so we render the
+                # kubespray inventory once at boot and never call the API again.
+                - name: Read /etc/box_configs.json
+                  set_fact:
+                    box_configs: "{{ lookup('file', box_configs_path) | from_json }}"
+
+                - name: Fetch self + siblings from EasyEnv API; retry until every sibling has an IP
+                  uri:
+                    url: "{{ box_configs.easyenv_host }}v1/vm/box"
+                    headers:
+                      Authorization: "Bearer {{ box_configs.api_token }}"
+                      Accept: application/json
+                    return_content: yes
+                  register: box_resp
+                  retries: 30
+                  delay: 10
+                  until: >-
+                    box_resp.status == 200
+                    and (box_resp.json.sibling_boxes | default([]) | length > 0)
+                    and (box_resp.json.sibling_boxes
+                         | map(attribute='settings')
+                         | map(attribute='ip_address')
+                         | select('truthy')
+                         | list
+                         | length
+                         == (box_resp.json.sibling_boxes | length))
+
+                - name: Build all_boxes (self first, then siblings); kubespray requires lowercase hostnames
+                  set_fact:
+                    all_boxes: >-
+                      {{ [box_resp.json.settings] +
+                         (box_resp.json.sibling_boxes | map(attribute='settings') | list) }}
+                    self_host: "{{ box_resp.json.settings.host | lower }}"
+
+                - name: Render kubespray inventory
+                  copy:
+                    dest: "{{ inventory_path }}"
+                    owner: easyenv
+                    group: easyenv
+                    mode: '0644'
+                    content: |
+                      # Generated at boot by install-kubespray. Regenerated only on `easyenv here up` after re-creation.
+                      all:
+                        hosts:
+                      {%- for box in all_boxes %}
+                          {{ box.host | lower }}:
+                            ansible_host: {{ box.ip_address }}
+                            ansible_user: {{ box.username | default('easyenv') }}
+                            ansible_python_interpreter: /usr/bin/python3
+                      {%- endfor %}
+                        children:
+                          kube_control_plane:
+                            hosts:
+                              {{ self_host }}:
+                          kube_node:
+                            hosts:
+                      {%- for box in all_boxes %}
+                              {{ box.host | lower }}:
+                      {%- endfor %}
+                          etcd:
+                            hosts:
+                              {{ self_host }}:
+                          k8s_cluster:
+                            children:
+                              kube_control_plane:
+                              kube_node:
+                          calico_rr:
+                            hosts: {}
 
     - title: worker-1
       recipe: Ubuntu 24.04 LTS

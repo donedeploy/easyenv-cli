@@ -2,21 +2,22 @@
 
 Three Ubuntu boxes. All three install PostgreSQL 16 at boot. The primary additionally installs Ansible. Once everyone's up, an inline-ansible playbook configures streaming replication: the primary accepts replicator connections, and the replicas `pg_basebackup` from it.
 
-## What you'll learn
+## easyenv features used
 
-- Inline-**ansible** stacks (`runner: ansible` + `playbook:`)
-- The boot-vs-post-up split for cross-node setup — install at boot, configure when peers are ready
-- Driving an Ansible playbook on the primary via `easyenv here run`
+- **`cross_connection: true`** — three boxes on a shared mesh.
+- **Inline-ansible stack** (`runner: ansible` + `playbook:`) attached to each machine — installs Postgres (and Ansible on the primary) at boot.
+- **Boot vs. post-up phase split** — boot stacks do local-only work; cross-node configuration runs from the primary after `easyenv here up --wait` returns.
+- **`easyenv here sync`** — pushes inventory + playbook to the primary.
+- **`easyenv here run --cmd '<cmd>'`** — drives the replication playbook from your laptop.
 
 ## Quick start
 
 ```sh
 cd examples/postgres-cluster
 
-easyenv here up --wait 10m
-easyenv here sync
-easyenv here run --cmd 'make replicate'   # ~1-2 min
-easyenv here run --cmd 'make verify'
+make up
+make deploy        # sync + remote-replicate (~1-2 min)
+make verify
 ```
 
 The `verify` output should show two replicas streaming:
@@ -31,8 +32,24 @@ The `verify` output should show two replicas streaming:
 Tear down:
 
 ```sh
-easyenv here down --force
+make down
 ```
+
+## Make targets
+
+Each local target echoes its underlying `easyenv` command before running. Remote targets (prefixed `remote-`) run on `pg-primary` and are normally invoked via `easyenv here run` by the local target — you don't call them directly.
+
+| Target | Underlying commands | What it does |
+|--------|---------------------|--------------|
+| `make up`       | `easyenv here up --wait 10m`                         | Create + start all three boxes. Each box installs Postgres at boot; primary also installs Ansible. |
+| `make sync`     | `easyenv here sync`                                  | rsync the project root (`inventory.ini`, `playbooks/`, `Makefile`) to `~/project` on the primary. |
+| `make deploy`   | `easyenv here sync` <br> `easyenv here run --cmd 'make remote-replicate'` | Push files, then on the primary: run `configure-replication.yml` against all three boxes. |
+| `make verify`   | `easyenv here run --cmd 'make remote-verify'`        | On the primary: query `pg_stat_replication` to confirm both replicas are streaming. |
+| `make ssh`      | `easyenv here ssh`                                   | Open an interactive shell on `pg-primary`. |
+| `make down`     | `easyenv here down --force`                          | Stop and delete the workspace. |
+| `make remote-replicate` | `cd ~/project && ansible-playbook -i inventory.ini playbooks/configure-replication.yml` | (Remote) full replication setup. Idempotent. |
+| `make remote-verify`    | `sudo -u postgres psql -c "SELECT client_addr, state, sync_state, sent_lsn, replay_lsn FROM pg_stat_replication;"` | (Remote) prints replication status. |
+| `make remote-status`    | `sudo systemctl status postgresql`               | (Remote) Postgres unit status. |
 
 ## How it works
 
@@ -60,13 +77,13 @@ machines:
 
 **Phase 2 — post-up configuration (primary drives all three)**
 
-After `easyenv here up --wait 10m` returns, all three boxes are reachable. `make replicate` runs `playbooks/configure-replication.yml` from the primary, which:
+After `make up` returns, all three boxes are reachable. `make deploy` runs `easyenv here sync` then `easyenv here run --cmd 'make remote-replicate'`, which on the primary executes `playbooks/configure-replication.yml`. That playbook:
 
 - Edits `postgresql.conf` (`wal_level=replica`, `max_wal_senders=10`, `hot_standby=on`).
 - Adds `pg_hba.conf` entries for the replicas.
 - Creates the `replicator` role.
 - On each replica: waits for primary:5432, stops Postgres, wipes `/var/lib/postgresql/16/main`, runs `pg_basebackup -X stream -R`, starts Postgres.
-- Drops a marker file so re-running `make replicate` doesn't re-bootstrap healthy replicas.
+- Drops a marker file so re-running `make deploy` doesn't re-bootstrap healthy replicas.
 
 The `wait_for: host=pg-primary port=5432 timeout=300` task at the top of the replica play is the peer-wait — it'll loop for up to 5 minutes if the primary is somehow lagging.
 
@@ -81,7 +98,7 @@ The `replicator` password is hardcoded in `inventory.ini` for sample simplicity.
 ## Test the replication
 
 ```sh
-easyenv here ssh   # lands on pg-primary
+make ssh   # lands on pg-primary
 
 # create some data
 sudo -u postgres psql <<EOF
@@ -96,9 +113,9 @@ ssh easyenv@pg-replica-1 'sudo -u postgres psql -c "SELECT count(*) FROM hello;"
 
 ## Re-running
 
-The playbook is idempotent — `make replicate` is safe to re-run. Replicas already in `streaming` state stay untouched (the bootstrap marker prevents re-basebackup).
+The playbook is idempotent — `make deploy` is safe to re-run. Replicas already in `streaming` state stay untouched (the bootstrap marker prevents re-basebackup).
 
-To rebuild a replica from scratch, SSH in and `sudo rm /var/lib/postgresql/.easyenv-replica-bootstrapped`, then `make replicate` again.
+To rebuild a replica from scratch, SSH in and `sudo rm /var/lib/postgresql/.easyenv-replica-bootstrapped`, then `make deploy` again.
 
 ## Try this next
 

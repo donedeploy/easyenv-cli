@@ -2,19 +2,20 @@
 
 A real-world `docker-compose` stack: Airflow 2.10.5 with LocalExecutor + Postgres, behind port 8080. A sample DAG (`dags/hello_dag.py`) gets synced from your laptop into the box's DAG folder; the scheduler picks it up automatically.
 
-## What you'll learn
+## easyenv features used
 
-- A non-trivial `docker-compose` stack — what a real compose file looks like inside `vars.script`
-- Combining a prep stack (inline-bash) + a service stack (catalog) in the same workspace
-- Pushing assets onto a running stack via `easyenv here sync`
+- **Stack composition on one machine** — an inline-bash prep stack (`runner: bash`) followed by the **`docker-compose` catalog stack**. They run in order at boot.
+- **`docker-compose` catalog stack with a non-trivial `vars.script`** — full Airflow compose, anchors, healthchecks, init container.
+- **`easyenv here sync`** workflow — push DAG files into the running compose stack's bind-mounted directory.
+- **`ports[]`** + **`easyenv here expose`** — forwards 8080 to localhost.
 
 ## Quick start
 
 ```sh
 cd examples/airflow
-easyenv here up --wait 12m       # ~10 min — Airflow image is large
-easyenv here sync                # push dags/hello_dag.py
-easyenv here expose &
+make up                # ~10 min — Airflow image is large
+make sync              # push dags/hello_dag.py
+make expose &
 ```
 
 Open <http://localhost:8080> — log in with `airflow` / `airflow`. You'll see `hello_easyenv` in the DAG list (it may take a minute for the scheduler to pick it up after sync).
@@ -24,8 +25,21 @@ Trigger it manually with the play button, or wait for the daily schedule.
 Tear down:
 
 ```sh
-easyenv here down --force
+make down
 ```
+
+## Make targets
+
+Each target echoes its underlying `easyenv` command before running.
+
+| Target | Runs | What it does |
+|--------|------|--------------|
+| `make up`     | `easyenv here up --wait 12m` | Create + start the box. The `docker-compose` stack pulls Airflow images and starts `webserver`/`scheduler`/`postgres` during boot. |
+| `make sync`   | `easyenv here sync`          | rsync the project root (incl. `dags/`) to `~/project` on the box. The bind-mounted DAG dir picks up changes within ~30s. |
+| `make deploy` | `make sync` (alias)          | Stacks already provisioned at boot; deploy just pushes the latest DAGs. |
+| `make expose` | `easyenv here expose`        | Forward `ports[8080]` to `localhost:8080`. |
+| `make ssh`    | `easyenv here ssh`           | Open an interactive shell on the box. |
+| `make down`   | `easyenv here down --force`  | Stop and delete the workspace. |
 
 ## How it works
 
@@ -47,7 +61,7 @@ volumes:
 
 ```sh
 # edit dags/hello_dag.py locally
-easyenv here sync     # the scheduler picks up changes within ~30s
+make sync     # the scheduler picks up changes within ~30s
 ```
 
 The Airflow UI's **Browse → DAG Code** view shows the file as Airflow sees it — handy for confirming the sync worked.
