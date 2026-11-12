@@ -47,7 +47,7 @@ Download the latest `easyenv_<version>_windows_amd64.exe` from the [releases pag
 easyenv --version
 ```
 
-You should see something like `easyenv version 0.6.0 (commit 5972e90…, built 2026-11-12T…)`.
+You should see something like `easyenv version 0.6.1 (commit 5972e90…, built 2026-11-12T…)`.
 
 ## Authentication
 

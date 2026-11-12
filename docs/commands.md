@@ -157,6 +157,8 @@ easyenv diagnose QN9noelw
 # ok    sshd       SSH-2.0-OpenSSH_9.6p1
 ```
 
+**A machine in a workspace shared with you** is reachable from any account where you are an admin, your personal one included. If a machine command answers that reading the machine's login needs the admin role on the active account, switch with `easyenv account list` and `easyenv account use <uuid>`; the ACCESS column shows your role.
+
 ### Your own ssh client
 
 `machine proxy` is an OpenSSH `ProxyCommand`, so plain `ssh`, `scp`, `rsync`, `sftp` and VS Code Remote-SSH all work:
@@ -172,7 +174,7 @@ Host *.box.easyenv.io
 ssh QN9noelw.box.easyenv.io
 ```
 
-Use `%n`, not `%h`: OpenSSH lowercases `%h`, and machine ids are mixed case. Your own client signs in with the key on your profile or the password from `easyenv machine password <m>`.
+Use `%n`, not `%h`: OpenSSH lowercases `%h`, and machine ids are mixed case. Your own client signs in with the key on your profile (`easyenv ssh-key add`) or the password from `easyenv machine password <m>`.
 
 ## `easyenv recipe`
 
@@ -224,6 +226,22 @@ Per-account file storage (recipes, shared files, artifacts).
 | `delete <uuid>` (alias `rm`) | Delete a storage file                            |                   |
 | `quota`                      | Show storage usage and limit                     |                   |
 
+## `easyenv ssh-key` (alias `ssh-keys`)
+
+The public keys on your profile, which machines trust for your own ssh client, in every account you belong to. A machine picks the keys up when it is built: a key added now reaches the machines you create from now on, and a machine that is already running keeps the keys it booted with until it is rebuilt. Removing a key works the same way.
+
+| Subcommand                                   | Purpose                                                        | Flags     |
+|----------------------------------------------|----------------------------------------------------------------|-----------|
+| `list` (alias `ls`)                          | Keys on your profile, with type and fingerprint                |           |
+| `add [public-key-file]`                      | Register a key; default is the first of `~/.ssh/id_ed25519.pub`, `id_ecdsa.pub`, `id_rsa.pub`. A private key file is refused. Adding a key twice is harmless. | `--label` (default: the key's comment) |
+| `rm <uuid\|fingerprint\|label>` (aliases `remove`, `delete`) | Remove a key; an ambiguous label is refused |           |
+
+```sh
+easyenv ssh-key add
+easyenv ws create --base ubuntu_24_04 --wait
+ssh <machine-uuid>.box.easyenv.io      # with the ssh config above, no password
+```
+
 ## `easyenv here`
 
 The day-to-day UX. The CLI walks up from your current directory looking for `.easyenv/workspace.yml`; everything under `here` operates on the workspace named by that file's `metadata.title`.
@@ -270,7 +288,7 @@ There's no separate `version` subcommand — the root flag prints `easyenv versi
 
 ```sh
 easyenv --version
-# → easyenv version 0.6.0 (commit 5972e90…, built 2026-11-12T…)
+# → easyenv version 0.6.1 (commit 5972e90…, built 2026-11-12T…)
 ```
 
 Once a day the CLI also checks the latest release and, when a newer one is out, prints one line on stderr after the command. It stays quiet for `dev` builds, with `--quiet`, in CI, and with `EASYENV_NO_UPDATE_CHECK` set.
