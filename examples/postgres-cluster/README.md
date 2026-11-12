@@ -4,7 +4,7 @@ Three Ubuntu boxes. All three install PostgreSQL 16 at boot. The primary additio
 
 ## easyenv features used
 
-- **`cross_connection: true`** — three boxes on a shared mesh.
+- **Sibling names**: three boxes that reach each other by title; `cross_connection: true` is kept but no longer needed.
 - **Inline-ansible stack** (`runner: ansible` + `playbook:`) attached to each machine — installs Postgres (and Ansible on the primary) at boot.
 - **Boot vs. post-up phase split** — boot stacks do local-only work; cross-node configuration runs from the primary after `easyenv here up --wait` returns.
 - **`easyenv here sync`** — pushes inventory + playbook to the primary.

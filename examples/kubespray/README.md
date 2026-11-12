@@ -1,10 +1,10 @@
 # kubespray — 3-node Kubernetes cluster via Kubespray
 
-Three Ubuntu boxes on the same `cross_connection` mesh. The master's inline-ansible install stack does everything that needs the EasyEnv API (sibling IPs, kubespray inventory) at boot, while the box token is fresh. `make deploy` then just runs Kubespray's `cluster.yml`.
+Three Ubuntu boxes in one workspace. The master's inline-ansible install stack does everything that needs the EasyEnv API (sibling IPs, kubespray inventory) at boot, while the box token is fresh. `make deploy` then just runs Kubespray's `cluster.yml`.
 
 ## easyenv features used
 
-- **`cross_connection: true`** — puts all three boxes on a shared NetBird mesh with routable IPs.
+- **Sibling names**: the three boxes reach each other by title (`/etc/hosts`, kept current at boot and on a timer). `cross_connection: true` is still in the file but no longer needed.
 - **Multi-machine workspace** — one machine carries the install stack; the other two are plain Ubuntu, configured remotely by Kubespray.
 - **Inline-ansible stack** (`runner: ansible` + `playbook:`) for boot-time install. Lets us use `uri`, `copy`, `template`, retries.
 - **EasyEnv per-box API** via `/etc/box_configs.json` (provisioned on every box) and `GET /v1/vm/box` — called from inside the install stack to discover sibling IPs.

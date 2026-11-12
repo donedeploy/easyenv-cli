@@ -37,7 +37,7 @@ The CLI rejects the file if `apiVersion` isn't `easyenv.io/v1`, `kind` isn't `Wo
 |--------------------------|---------|-------------------------------------------------------------------|
 | `duration`               | int     | Workspace TTL. Pair with `duration_unit`.                         |
 | `duration_unit`          | string  | `minutes`, `hours`, or `days`.                                    |
-| `cross_connection`       | bool    | Lets machines in this workspace reach each other (NetBird mesh). Required for any multi-box lab where boxes talk to each other. |
+| `cross_connection`       | bool    | Accepted and stored, but no longer changes anything: every machine reaches the others in its workspace by title (each box writes its siblings' addresses into `/etc/hosts` at boot and refreshes them on a timer). It used to put the boxes on a shared NetBird mesh, which was removed in September 2026. |
 | `single_active_machine`  | bool    | Only one machine can be running at a time — saves resources for personal sandboxes. |
 | `virtualization_backend` | string  | Override the account's default backend (Proxmox, Docker, …).      |
 | `machines`               | list    | One or more entries — see below.                                  |
@@ -207,7 +207,7 @@ spec:
         storage_gb: 20
 ```
 
-`cross_connection: true` puts both boxes on the same NetBird mesh; from `app` you can `ssh easyenv@db` or `psql -h db -U postgres`.
+Each box knows the other by title, so from `app` you can `ssh easyenv@db` or `psql -h db -U postgres`.
 
 ### One box with a catalog stack and an inline stack
 

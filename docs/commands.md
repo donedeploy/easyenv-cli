@@ -11,7 +11,7 @@ These work on any command:
 | `--output`, `-o` | string | `table` | output format: `table`, `json`, `yaml`    |
 | `--account`, `-a`| string | (config)| override the active account UUID         |
 | `--quiet`, `-q`  | bool   | false   | suppress non-essential output            |
-| `--version`      | bool   |         | print version and exit                    |
+| `--version`, `-v`| bool   |         | print version and exit                    |
 
 ## Environment variables
 
@@ -21,6 +21,7 @@ These work on any command:
 | `EASYENV_TOKEN`   | service token       |
 | `EASYENV_ACCOUNT` | active account UUID |
 | `EASYENV_WEB_URL` | web console URL     |
+| `EASYENV_NO_UPDATE_CHECK` | set to anything: no daily check for a newer release (also off when `CI` is set) |
 
 See [`install.md`](install.md#environment-variables-ci--scripting) for context.
 
@@ -60,41 +61,49 @@ Multi-tenant: a single token may grant access to several accounts.
 
 ## `easyenv workspace` (aliases `ws`, `w`)
 
-Workspaces are the unit of provisioning — one or more machines created from a YAML spec.
+Workspaces are the unit of provisioning: one or more machines created from a YAML spec, a template or a single recipe.
 
 | Subcommand                  | Purpose                                          | Flags |
 |-----------------------------|--------------------------------------------------|-------|
-| `list` (alias `ls`)         | List workspaces                                  | `--status`, `--search`, `--shared`, `--sort`, `--limit`, `--page` |
-| `get <ws>` (alias `describe`)| Describe a workspace by UUID                    |       |
-| `create`                    | Create a workspace from a YAML spec, template, or single recipe | `--file`/`-f`, `--template`, `--base`, `--name`, `--ttl`, `--dry-run` |
-| `delete <ws>` (alias `rm`)  | Soft-delete a workspace                          | `--force` |
+| `list` (alias `ls`)         | List workspaces (every page unless `--limit`/`--page`) | `--status`, `--search`, `--shared`, `--sort` (`name_asc`, `name_desc`, `status_active`), `--limit` (max 200), `--page` |
+| `get <ws>` (alias `describe`)| Describe a workspace, with the commands for each machine |  |
+| `create`                    | Create a workspace from a YAML spec, template, or single recipe | `--file`/`-f`, `--template`, `--base`, `--name`, `--ttl`, `--public-ip`, `--wait`, `--dry-run` |
+| `delete <ws>` (alias `rm`)  | Delete a workspace                               | `--force` |
 | `start <ws>`                | Start a workspace (async)                        |       |
-| `stop <ws>`                 | Stop a workspace                                 |       |
+| `stop <ws>`                 | Stop a workspace, and say why it stopped         |       |
 | `restart <ws>`              | Stop then start                                  |       |
-| `extend <ws>`               | Extend a workspace's TTL                         | `--duration` (e.g. `1h`, `30m`) |
+| `extend <ws>`               | Extend a workspace's TTL                         | `--duration` (`30m`, `2h`, `1d`) |
 | `duplicate <ws>`            | Clone a workspace                                | `--title` |
 | `watch <ws>`                | Stream workspace + machine + stack status        | `--interval` (default `2s`) |
+| `members <ws>`              | List the workspace's members                     |       |
 
-`workspace create` accepts a YAML spec (`-f`), a template shortcut (`--template`), or a single-recipe shortcut (`--base`). The three modes are mutually exclusive.
+`workspace connect` and `disconnect` are kept for old scripts and do nothing: there is no VPN to bring up (see [Reaching machines](#reaching-machines)).
+
+`workspace create` accepts a YAML spec (`-f`), a template (`--template`), or a single recipe (`--base`). The three are mutually exclusive. `--template` and `--base` look the reference up by UUID first, then by exact title.
 
 ```sh
 # From a YAML spec
-easyenv ws create -f .easyenv/workspace.yml
+easyenv ws create -f .easyenv/workspace.yml --wait
 
-# From a template (looks up by UUID, falling back to exact title match)
+# From a template (easyenv template list)
 easyenv workspace create \
-  --template python_devenv \
+  --template python-dev-single \
   --name review-pr-1284 \
-  --ttl 8h
+  --ttl 8h --wait
 
-# From a single recipe (one-machine workspace)
+# From a single recipe (easyenv recipe list)
 easyenv workspace create \
-  --base ubuntu \
+  --base ubuntu_24_04 \
   --name scratch \
-  --ttl 2h
+  --ttl 2h --wait
+
+# A box with a public IPv4, reachable by plain ssh without the CLI
+easyenv workspace create --base ubuntu_24_04 --public-ip --name my-box
 ```
 
-`--ttl` accepts `30s`, `5m`, `2h`, etc. (a bare integer is read as seconds). `--name` overrides the workspace title (default: the template's or recipe's title). Add `--dry-run` to validate and print the resolved request body without sending it, handy for CI:
+A new workspace is `not_started`. **`--wait` starts it** and blocks until every machine is active, then prints how to reach each one. Without `--wait`, start it yourself with `easyenv ws start <ws>`.
+
+`--ttl` takes minutes, hours or days: `30m`, `2h`, `1d`. Seconds and bare numbers are refused, because the API has no such unit. `--name` overrides the workspace title (default: the template's or recipe's title). `--dry-run` validates and prints the resolved request body without sending it, handy in CI:
 
 ```sh
 easyenv ws create -f .easyenv/workspace.yml --dry-run
@@ -102,19 +111,68 @@ easyenv ws create -f .easyenv/workspace.yml --dry-run
 
 ## `easyenv machine` (alias `m`)
 
-Operations on individual machines (boxes) inside a workspace. Most commands require `--workspace`/`-w`.
+Operations on individual machines (boxes). `--workspace`/`-w` is optional wherever it says so: the machine is found among the workspaces you can see.
 
 | Subcommand                  | Purpose                                            | Flags |
 |-----------------------------|----------------------------------------------------|-------|
-| `list` (alias `ls`)         | List machines in a workspace                       | `-w` (required) |
-| `get <m>` (alias `describe`)| Describe a machine                                 | `-w` (required) |
-| `delete <m>` (alias `rm`)   | Delete a machine                                   | `-w` (required), `--force` |
-| `start <m>`                 | Start a machine                                    | `-w` (required) |
-| `stop <m>`                  | Stop a machine                                     | `-w` (required) |
-| `restart <m>`               | Stop then start                                    | `-w` (required) |
-| `extend <m>`                | Extend a machine's TTL                             | `-w` (required), `--duration` |
-| `ssh <m>`                   | Open an interactive SSH session                    | `-w` (required), `--dry-run` |
-| `exec <m> -- <cmd…>`        | Run a command, return the remote exit code         | `-w` (required), `--tty`/`-t` |
+| `list` (alias `ls`)         | List machines in a workspace                       | `-w` |
+| `get <m>` (alias `describe`)| Describe a machine                                 | `-w` |
+| `start <m>` / `stop <m>` / `restart <m>` | Lifecycle                            | `-w` |
+| `extend <m>`                | Extend a machine's TTL                             | `-w`, `--duration` (`30m`, `2h`, `1d`) |
+| `ssh <m>`                   | Interactive shell                                  | `-w` (optional), `--dry-run` (print the ssh command) |
+| `exec <m> -- <cmd…>`        | Run a command, exit with the remote exit code      | `-w` (optional), `--tty`/`-t` |
+| `cp <src> <dst>`            | Copy one file or dir; one side is `M:/path`        | `-w` (optional) |
+| `sync <src> <dst>`          | rsync; one side is `M:/path`                       | `-w` (optional), `--exclude` (repeatable), `--delete`, `--dry-run` |
+| `port-forward <m> <spec…>` (aliases `forward`, `pf`) | Forward `PORT` or `LOCAL:REMOTE` to localhost until Ctrl-C | `-w` (optional), `--no-ssh` (one port, no ssh client) |
+| `logs <m>`                  | The box's bootstrap, status and cloud-init logs    | `-w` (optional), `--follow`/`-f`, `--source <path>` |
+| `password <m>`              | Print the machine's password                       | `-w` |
+| `hostname <m>`              | Print the name for your ssh config (`<uuid>.box.easyenv.io`) |  |
+| `proxy <m>`                 | stdin/stdout to a port inside the machine, for ssh's `ProxyCommand` | `--port` (default 22) |
+| `vm-id <m>`                 | Print the underlying VM id                         | `-w` |
+
+```sh
+easyenv machine exec QN9noelw -- 'systemctl is-active nginx'
+easyenv machine cp ./fixtures.sql QN9noelw:/tmp/
+easyenv machine sync ./src QN9noelw:/home/easyenv/app --exclude node_modules
+easyenv machine port-forward QN9noelw 8080 5433:5432
+easyenv machine logs QN9noelw -f
+```
+
+To remove one machine, use the web console; `machine delete` explains why it does not do it from here. Delete the whole workspace with `easyenv ws delete`.
+
+### Reaching machines
+
+Every command above reaches the box through the **EasyEnv connection broker**: the box keeps a connection open outwards, and the CLI asks the backend for a short-lived grant for that one box. There is no VPN, no mesh, no DNS and no open port, so there is nothing to connect first. You need OpenSSH 8.4+ and, for `sync`, rsync.
+
+Boxes take an ssh key from your EasyEnv profile, or their own password. The CLI fetches the password and answers ssh's prompt itself, so `sshpass` is not needed.
+
+When a machine will not answer:
+
+```sh
+easyenv diagnose QN9noelw
+# ok    auth       you@example.com
+# ok    grant      wss://broker.easyenv.io/v1/attach/QN9noelw, expires in 4m59s
+# ok    broker     agent connected, attach took 266ms
+# ok    port 22    open in 64ms
+# ok    sshd       SSH-2.0-OpenSSH_9.6p1
+```
+
+### Your own ssh client
+
+`machine proxy` is an OpenSSH `ProxyCommand`, so plain `ssh`, `scp`, `rsync`, `sftp` and VS Code Remote-SSH all work:
+
+```
+# ~/.ssh/config
+Host *.box.easyenv.io
+  User easyenv
+  ProxyCommand easyenv machine proxy %n
+```
+
+```sh
+ssh QN9noelw.box.easyenv.io
+```
+
+Use `%n`, not `%h`: OpenSSH lowercases `%h`, and machine ids are mixed case. Your own client signs in with the key on your profile or the password from `easyenv machine password <m>`.
 
 ## `easyenv recipe`
 
@@ -127,13 +185,22 @@ Recipes are OS / pre-baked machine templates (Ubuntu 24.04 LTS, Python Dev Env, 
 
 ## `easyenv stack`
 
-Catalog stack recipes (`docker-run`, `docker-compose`, `bash`, `argocd`, …) — bundled scripts you compose on top of a recipe via `workspace.yml`.
+Catalog stack recipes (`docker-run`, `docker-compose`, `bash`, `argocd`, …) are bundled scripts you compose on top of a recipe, in `workspace.yml` or onto a running workspace.
 
 | Subcommand          | Purpose                                            | Flags          |
 |---------------------|----------------------------------------------------|----------------|
 | `list` (alias `ls`) | List catalog stack recipes                         |                |
 | `get <name\|uuid>`  | Describe a stack recipe (vars schema, defaults)    |                |
-| `instances`         | List stack instances on a workspace                | `-w` (required)|
+| `instances`         | List stack instances on a workspace                | `-w` |
+| `add`               | Attach a catalog or inline stack to a workspace    | `-w`, `-m` (one machine), `--recipe` + `--var k=v`, or `--inline-title` + `--inline-runner bash\|ansible` + `--inline-file` |
+| `apply <instance>`  | Run a stack instance now; prints what was queued, skipped or blocked | `-w`, `-m` (one machine) |
+| `logs <instance>`   | A stack instance's output                          | `-w` |
+| `remove <instance>` (alias `rm`) | Remove a stack instance               | `-w`, `--force` |
+
+```sh
+easyenv stack add -w <ws> --recipe docker-run --var image=nginx:latest
+easyenv stack add -w <ws> -m <m> --inline-title bootstrap --inline-runner bash --inline-file ./bootstrap.sh
+```
 
 ## `easyenv template`
 
@@ -142,7 +209,7 @@ Pre-defined workspace templates — one-shot ways to spin up an environment with
 | Subcommand          | Purpose                                | Flags     |
 |---------------------|----------------------------------------|-----------|
 | `list` (alias `ls`) | List templates                         |           |
-| `get <uuid>`        | Describe a template                    |           |
+| `get <uuid\|title>` | Describe a template                    |           |
 | `use <uuid>`        | Create a workspace from a template     | `--title` |
 
 ## `easyenv storage`
@@ -165,10 +232,11 @@ The day-to-day UX. The CLI walks up from your current directory looking for `.ea
 |------------|------------------------------------------------------------------------------|-------|
 | `up`       | Create or reuse the workspace, then start it                                 | `--title`, `--wait <duration>` |
 | `down`     | Stop and delete the workspace                                                | `--title`, `--force` |
-| `ssh`      | Interactive shell on the first machine (auto-VPN)                            |       |
+| `ssh`      | Interactive shell on the first machine                                       |       |
 | `sync`     | rsync the project tree to `~/<repo-basename>` on the remote                  | `--exclude` (repeatable), `--delete`, `--dry-run` |
 | `run`      | sync + run a command on the remote (default: `make run`)                     | `--cmd` |
 | `expose`   | Forward all `spec.machines[0].ports[]` from `workspace.yml` to localhost     |       |
+| `watch`    | Stream the workspace's status until Ctrl-C                                   | `--interval` |
 
 `up` is idempotent — if a workspace with the same `metadata.title` already exists in your account, it's reused. Pass `--wait 10m` (or any duration) to block until the workspace becomes `active` before returning.
 
@@ -184,7 +252,7 @@ Server reachability + active account summary. Useful when something feels off.
 
 ## `easyenv diagnose`
 
-Deep connectivity diagnostic for a workspace/machine. Flags: `--workspace`/`-w`, `--machine`/`-m`. (Some sub-checks are still being filled in.)
+`easyenv diagnose <m>` walks the path to a machine (backend, grant, broker, port 22, sshd) and stops at the first hop that fails. Flags: `--workspace`/`-w` (optional), `--port` (default 22). See [Reaching machines](#reaching-machines).
 
 ## `easyenv completion`
 
@@ -202,5 +270,7 @@ There's no separate `version` subcommand — the root flag prints `easyenv versi
 
 ```sh
 easyenv --version
-# → easyenv version 0.1.0 (commit abc1234, built 2026-05-02T11:55:00Z)
+# → easyenv version 0.6.0 (commit 5972e90…, built 2026-11-12T…)
 ```
+
+Once a day the CLI also checks the latest release and, when a newer one is out, prints one line on stderr after the command. It stays quiet for `dev` builds, with `--quiet`, in CI, and with `EASYENV_NO_UPDATE_CHECK` set.

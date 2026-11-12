@@ -26,6 +26,20 @@ easyenv --version
 
 For macOS, Windows, and arm64, see [`docs/install.md`](docs/install.md).
 
+> **On 0.5.0 or older? Upgrade.** Those versions reach machines through the NetBird mesh, which was removed in September 2026: they log in fine, then `ssh`/`exec`/`sync` fail with `no machine in this workspace has a VPN key`. From 0.6.0 machines are reached through the EasyEnv connection broker, with nothing to install but OpenSSH.
+
+### Your own ssh client, scp, rsync and VS Code
+
+`easyenv machine proxy` is an OpenSSH `ProxyCommand`, so anything that speaks ssh can reach a box. Add to `~/.ssh/config`:
+
+```
+Host *.box.easyenv.io
+  User easyenv
+  ProxyCommand easyenv machine proxy %n
+```
+
+then `ssh <machine-uuid>.box.easyenv.io` (`easyenv machine hostname <m>` prints the name). Use `%n`, not `%h`: OpenSSH lowercases `%h`, and machine ids are mixed case. Your own ssh client signs in with an ssh key on your EasyEnv profile, or with the box password from `easyenv machine password <m>`; the `easyenv` commands themselves need neither.
+
 ## First-time setup
 
 1. Mint a service token at [easyenv.io](https://easyenv.io) → **Account** → **Service tokens**.
@@ -54,7 +68,7 @@ make up
 make ssh
 ```
 
-You're in. `exit` to drop back, then `make down` to tear it down.
+You're in. `exit` to drop back, then `make down` to tear it down. If a machine will not answer, `easyenv diagnose <machine>` says which hop is broken.
 
 Each example ships a `Makefile` that wraps the underlying `easyenv` commands and echoes them before running, so you can learn the raw form as you go.
 

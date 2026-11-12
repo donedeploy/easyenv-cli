@@ -47,7 +47,7 @@ Download the latest `easyenv_<version>_windows_amd64.exe` from the [releases pag
 easyenv --version
 ```
 
-You should see something like `easyenv version 0.1.0 (commit abc1234, built 2025-...)`.
+You should see something like `easyenv version 0.6.0 (commit 5972e90…, built 2026-11-12T…)`.
 
 ## Authentication
 
@@ -107,6 +107,16 @@ watch_interval: 2s     # poll interval for `easyenv ws watch`
 
 Settings can be edited with `easyenv config set <key> <value>` / `easyenv config unset <key>`, or by editing the file directly. `easyenv config view` prints the effective config (with env-var overrides applied), and `easyenv config path` prints the absolute file path.
 
+## What else the CLI needs
+
+- **OpenSSH 8.4 or newer** (`ssh -V`). Machines are reached through the EasyEnv connection broker, which the box dials outwards, so there is no VPN to install and no port to open. The CLI hands ssh a `ProxyCommand` and, when a box uses a password, answers ssh's password prompt itself. `sshpass` is no longer needed; it is still used if it is installed.
+- **rsync** for `machine sync` and `here sync`. `machine cp`, `exec`, `ssh` and `port-forward` do not need it.
+- Optional: an ssh key on your EasyEnv profile. With one, boxes accept your key and no password is involved at all.
+
+`easyenv diagnose <machine>` walks the path to a box (backend, grant, broker, port 22, sshd) and stops at the first hop that fails.
+
 ## Updating
 
-There is no built-in self-update yet, re-run the install one-liner above. The binary is a single static file; replacing it in place is safe.
+Re-run the install one-liner above; the binary is a single static file and replacing it in place is safe. Once a day the CLI checks the latest release and prints a one-line notice on stderr when a newer one is out. It never checks for a `dev` build, in CI (`CI` set), or with `EASYENV_NO_UPDATE_CHECK=1`.
+
+> Upgrading from 0.5.0 or older is required, not optional: those versions reach machines through the NetBird mesh, which was removed in September 2026. They still log in and list workspaces, but `ssh`, `exec`, `sync` and `port-forward` fail with `no machine in this workspace has a VPN key`.
