@@ -1,45 +1,53 @@
 # Install
 
-The `easyenv` CLI is distributed as a static binary on GitHub Releases. Pick your platform below.
-
-## Linux
+macOS and Linux:
 
 ```sh
-# Detect latest version
-VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
-  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
-
-# amd64
-sudo curl -fsSL -o /usr/local/bin/easyenv \
-  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_amd64"
-sudo chmod +x /usr/local/bin/easyenv
-
-# arm64
-sudo curl -fsSL -o /usr/local/bin/easyenv \
-  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_arm64"
-sudo chmod +x /usr/local/bin/easyenv
+curl -fsSL https://get.easyenv.io/cli | sh
 ```
 
-## macOS
+Windows (PowerShell):
+
+```powershell
+irm https://get.easyenv.io/cli.ps1 | iex
+```
+
+`get.easyenv.io` redirects to [`install.sh`](../install.sh) and [`install.ps1`](../install.ps1) in this repo, so you can read exactly what runs before you run it.
+
+## What the script does
+
+On macOS and Linux, `install.sh`:
+
+1. picks the build for your machine from `uname`: `darwin` or `linux`, `amd64` (x86_64) or `arm64` (aarch64). Anything else, such as 32-bit `armv7l`, stops with a message rather than installing the wrong file. An x86_64 shell under Rosetta on Apple silicon gets the native arm64 build.
+2. downloads `checksums.txt` from the latest release, which names every build of that release, then the binary for your machine from the same release.
+3. checks the binary's SHA-256 against `checksums.txt`. A mismatch stops the install and nothing is written.
+4. installs it as `easyenv`: over the `easyenv` already on your `PATH` if there is one (that is how an upgrade works), otherwise in `/usr/local/bin`. It uses `sudo` only when that folder is not writable, and falls back to `~/.local/bin` when there is no `sudo`, telling you how to put that folder on your `PATH`.
+5. runs `easyenv --version`.
+
+It needs `curl` or `wget`, and `sha256sum`, `shasum` or `openssl` to check the download.
+
+On Windows, `install.ps1` does the same with `easyenv_<version>_windows_amd64.exe`: it checks the SHA-256, installs `easyenv.exe` in `$HOME\bin`, and adds that folder to your user `Path` only when it is not there yet, so running it again does not add it twice. It works in PowerShell 7 and in Windows PowerShell 5.1, and changes the `Path` of the window you ran it in too, so `easyenv` works there right away.
+
+## Settings
+
+| Variable               | What it does                                                        |
+|------------------------|---------------------------------------------------------------------|
+| `EASYENV_VERSION`      | Install this release instead of the latest, e.g. `0.6.0`.           |
+| `EASYENV_INSTALL_DIR`  | macOS and Linux only: install into this folder; no `sudo` is tried. |
+| `EASYENV_RELEASES_URL` | A mirror laid out like `https://github.com/donedeploy/easyenv-cli/releases`. |
 
 ```sh
-VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
-  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
-
-# Apple Silicon (arm64)
-sudo curl -fsSL -o /usr/local/bin/easyenv \
-  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_darwin_arm64"
-sudo chmod +x /usr/local/bin/easyenv
-
-# Intel (amd64)
-sudo curl -fsSL -o /usr/local/bin/easyenv \
-  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_darwin_amd64"
-sudo chmod +x /usr/local/bin/easyenv
+curl -fsSL https://get.easyenv.io/cli | EASYENV_VERSION=0.6.0 sh
+curl -fsSL https://get.easyenv.io/cli | EASYENV_INSTALL_DIR="$HOME/bin" sh
 ```
 
-## Windows
+```powershell
+$env:EASYENV_VERSION = '0.6.0'; irm https://get.easyenv.io/cli.ps1 | iex
+```
 
-Download the latest `easyenv_<version>_windows_amd64.exe` from the [releases page](https://github.com/donedeploy/easyenv-cli/releases/latest), rename it to `easyenv.exe`, and put it somewhere on your `PATH` (for example `%USERPROFILE%\bin\` after adding that directory to `PATH`).
+## Install by hand
+
+Every [release](https://github.com/donedeploy/easyenv-cli/releases/latest) has a bare binary per platform (`easyenv_<version>_linux_amd64`, `linux_arm64`, `darwin_amd64`, `darwin_arm64`, `windows_amd64.exe`), the same binary in a `.tar.gz` or `.zip`, and `checksums.txt`. Download yours, check it with `sha256sum -c --ignore-missing checksums.txt` (`shasum -a 256` on macOS), make it executable, and put it on your `PATH` as `easyenv` (`easyenv.exe` on Windows).
 
 ## Verify
 
