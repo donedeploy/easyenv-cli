@@ -12,19 +12,19 @@ The `easyenv` CLI is how you drive easyenv.io from your terminal: spin workspace
 
 ## Install
 
-Download a pre-built binary from [github.com/donedeploy/easyenv-cli/releases](https://github.com/donedeploy/easyenv-cli/releases):
+macOS and Linux:
 
 ```sh
-# Linux (amd64)
-VERSION=$(curl -fsSL https://api.github.com/repos/donedeploy/easyenv-cli/releases/latest \
-  | grep -oE '"tag_name":\s*"[^"]+"' | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
-sudo curl -fsSL -o /usr/local/bin/easyenv \
-  "https://github.com/donedeploy/easyenv-cli/releases/download/${VERSION}/easyenv_${VERSION}_linux_amd64"
-sudo chmod +x /usr/local/bin/easyenv
-easyenv --version
+curl -fsSL https://get.easyenv.io/cli | sh
 ```
 
-For macOS, Windows, and arm64, see [`docs/install.md`](docs/install.md).
+Windows (PowerShell):
+
+```powershell
+irm https://get.easyenv.io/cli.ps1 | iex
+```
+
+Both install the latest release, check it against the release's `checksums.txt`, and print `easyenv --version`. Run the same line again to upgrade. The scripts are [`install.sh`](install.sh) and [`install.ps1`](install.ps1) in this repo; [`docs/install.md`](docs/install.md) has what they do, their settings, and the manual way.
 
 > **On 0.5.0 or older? Upgrade.** Those versions reach machines through the NetBird mesh, which was removed in September 2026: they log in fine, then `ssh`/`exec`/`sync` fail with `no machine in this workspace has a VPN key`. From 0.6.0 machines are reached through the EasyEnv connection broker, with nothing to install but OpenSSH.
 
