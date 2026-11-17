@@ -84,6 +84,35 @@ main() {
 
 	has curl || has wget || err "needs curl or wget to download the CLI"
 
+	# Where it goes, settled before anything is downloaded: EASYENV_INSTALL_DIR,
+	# else wherever easyenv already is (an upgrade must replace that copy, not
+	# leave a second one earlier or later on PATH), else /usr/local/bin.
+	sudo=
+	current=$(command -v easyenv 2>/dev/null || true)
+	if [ -n "${EASYENV_INSTALL_DIR:-}" ]; then
+		dir=${EASYENV_INSTALL_DIR%/}
+		mkdir -p "$dir" || err "cannot create $dir"
+		[ -w "$dir" ] || err "cannot write to $dir"
+	elif [ -n "$current" ] && [ -f "$current" ]; then
+		dir=$(dirname "$current")
+		if [ ! -w "$dir" ]; then
+			can_sudo || err "easyenv is installed in $dir, which needs sudo to change, and sudo is not available. Set EASYENV_INSTALL_DIR to a folder you own, or remove $current first."
+			sudo=sudo
+		fi
+	else
+		dir=/usr/local/bin
+		mkdir -p "$dir" 2>/dev/null || true
+		if [ -d "$dir" ] && [ -w "$dir" ]; then
+			:
+		elif can_sudo; then
+			sudo=sudo
+		else
+			dir=$HOME/.local/bin
+			mkdir -p "$dir" || err "cannot create $dir"
+		fi
+	fi
+	target=$dir/easyenv
+
 	tmp=$(mktemp -d 2>/dev/null || mktemp -d -t easyenv)
 	trap 'rm -rf "$tmp"' EXIT
 	trap 'rm -rf "$tmp"; exit 1' HUP INT TERM
@@ -123,34 +152,6 @@ main() {
 		err "checksum mismatch for $name: checksums.txt says $want, the download is $got. The file is damaged or is not the one that was released, so nothing was installed. Try again; if it happens again, report it at https://github.com/donedeploy/easyenv-cli/issues"
 	fi
 
-	# Where it goes: EASYENV_INSTALL_DIR, else wherever easyenv already is (an
-	# upgrade must replace that copy, not leave a second one earlier or later
-	# on PATH), else /usr/local/bin.
-	sudo=
-	current=$(command -v easyenv 2>/dev/null || true)
-	if [ -n "${EASYENV_INSTALL_DIR:-}" ]; then
-		dir=${EASYENV_INSTALL_DIR%/}
-		mkdir -p "$dir" || err "cannot create $dir"
-		[ -w "$dir" ] || err "cannot write to $dir"
-	elif [ -n "$current" ] && [ -f "$current" ]; then
-		dir=$(dirname "$current")
-		if [ ! -w "$dir" ]; then
-			can_sudo || err "easyenv is installed in $dir, which needs sudo to change, and sudo is not available. Set EASYENV_INSTALL_DIR to a folder you own, or remove $current first."
-			sudo=sudo
-		fi
-	else
-		dir=/usr/local/bin
-		mkdir -p "$dir" 2>/dev/null || true
-		if [ -d "$dir" ] && [ -w "$dir" ]; then
-			:
-		elif can_sudo; then
-			sudo=sudo
-		else
-			dir=$HOME/.local/bin
-			mkdir -p "$dir" || err "cannot create $dir"
-		fi
-	fi
-	target=$dir/easyenv
 
 	[ -z "$sudo" ] || say "Installing to $dir needs sudo; it may ask for your password."
 	$sudo mkdir -p "$dir"
