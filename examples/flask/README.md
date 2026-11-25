@@ -15,14 +15,17 @@ One Python Dev Env box. An inline-bash stack installs Flask at boot. Your `app.p
 cd examples/flask
 make up
 make sync           # push app.py + Makefile
-make run &          # runs `python3 app.py` on the box
-make expose &       # forward localhost:5000
+make run            # keep the app running in this terminal
+```
 
-curl http://localhost:5000
+In a second terminal in the example directory, run `make expose`. Once the tunnel is ready, use a third terminal:
+
+```sh
+curl -fsS http://localhost:5000
 # → hello easyenv
 ```
 
-`Ctrl-C` the background jobs, then:
+Stop the app and tunnel with Ctrl-C in their terminals, then run:
 
 ```sh
 make down
@@ -67,7 +70,7 @@ This is the day-to-day loop:
 ```sh
 # edit app.py locally in your editor
 make sync     # push the change
-make run &    # restart Flask on the box
+make run      # run again after stopping the previous process
 ```
 
 Excludes are sensible by default: `.git`, `node_modules`, `__pycache__`, `*.pyc`, `.venv`, `venv`, `.env`. Pass `--exclude PATTERN` to add more, or `--delete` to mirror exactly.

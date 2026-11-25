@@ -41,14 +41,23 @@
         line: "hot_standby = on"
       notify: restart postgresql
 
+    - name: Resolve replica addresses on the primary
+      ansible.builtin.getent:
+        database: ahosts
+        key: "{{ hostvars[item].ansible_host | default(item) }}"
+      loop: "{{ groups['replicas'] }}"
+      register: replica_addresses
+
     - name: pg_hba.conf — replication entries for replicas
       blockinfile:
         path: "{{ pg_hba }}"
         marker: "# {mark} ANSIBLE MANAGED REPLICATION"
         block: |
-          host replication replicator pg-replica-1/32 md5
-          host replication replicator pg-replica-2/32 md5
-          host all          all        0.0.0.0/0      md5
+          {% for replica in replica_addresses.results %}
+          {% for address in replica.ansible_facts.getent_ahosts | sort %}
+          host replication replicator {{ address }}/{{ 128 if ':' in address else 32 }} md5
+          {% endfor %}
+          {% endfor %}
       notify: restart postgresql
 
     - name: Create replicator role
@@ -77,15 +86,16 @@
         port: 5432
         timeout: 300
 
-    - name: Stop postgresql
-      service:
-        name: postgresql
-        state: stopped
-
     - name: Detect bootstrap marker
       stat:
         path: "{{ marker }}"
       register: bootstrap_marker
+
+    - name: Stop postgresql
+      service:
+        name: postgresql
+        state: stopped
+      when: not bootstrap_marker.stat.exists
 
     - name: Wipe data dir (only on first bootstrap)
       file:

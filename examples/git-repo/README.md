@@ -20,18 +20,17 @@ You're on the box. Look around:
 ```sh
 ls ~/easyenv-cli/examples/git-repo/    # app.py is already here
 cd ~/easyenv-cli/examples/git-repo
-python3 app.py &
+python3 app.py
 ```
 
-`Ctrl-C` to drop back, run `exit` to leave, then forward the port from your laptop:
+Keep the SSH session and app running. In a second terminal in the local example directory, run `make expose`. Once the tunnel is ready, use a third terminal:
 
 ```sh
-make expose &
-curl http://localhost:5000
+curl -fsS http://localhost:5000
 # → hello from git-repo
 ```
 
-Tear down:
+To tear down, run this in the local example directory:
 
 ```sh
 make down
@@ -70,8 +69,8 @@ The inline `install-flask` stack still runs the same way as before, installing F
 |                            | `flask` (`here sync`)            | `git-repo` (`git_repo`)            |
 |----------------------------|----------------------------------|------------------------------------|
 | Where the code lives       | rsync'd from your laptop         | cloned fresh from GitHub on boot   |
-| Works on a fork            | yes — any path                   | yes, but you have to push it first |
-| Edit-and-test loop         | edit local → `here sync`         | push to GitHub → `here up` again   |
+| Works on a fork            | yes — any path                   | set `git_repo` to your fork before the first boot |
+| Edit-and-test loop         | edit local → `here sync`         | push to the same branch → `git pull --ff-only` in the guest clone   |
 | Best for                   | active development               | demos, CI, ephemeral spin-ups      |
 | Needs a public-ish repo?   | no                               | yes (or a deploy-key setup)        |
 

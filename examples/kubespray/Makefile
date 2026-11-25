@@ -40,11 +40,15 @@ KUBECONFIG_LOCAL := $(CURDIR)/kubeconfig
 
 kube:
 	@echo "+ easyenv here run --cmd 'make remote-kubeconfig'  →  $(KUBECONFIG_LOCAL)"
-	@easyenv here run --cmd 'make remote-kubeconfig' \
-	  | awk '/^===KUBECONFIG-BEGIN===$$/{p=1; next} /^===KUBECONFIG-END===$$/{p=0} p' \
-	  | sed 's|server: https://[^[:space:]]*|server: https://127.0.0.1:6443|' \
-	  > $(KUBECONFIG_LOCAL)
-	@chmod 0600 $(KUBECONFIG_LOCAL)
+	@set -e -o pipefail; \
+	  tmp=$$(mktemp "$(KUBECONFIG_LOCAL).XXXXXX"); trap 'rm -f -- "$$tmp"' EXIT; \
+	  easyenv here run --cmd 'make remote-kubeconfig' | awk ' \
+	    /^===KUBECONFIG-BEGIN===$$/{if (inside || complete) exit 1; inside=1; next} \
+	    /^===KUBECONFIG-END===$$/{if (!inside) exit 1; complete=1; inside=0; next} \
+	    inside && /^[[:space:]]*server:[[:space:]]+https:\/\// { \
+	      sub(/https:\/\/[^[:space:]]+/, "https://127.0.0.1:6443"); server=1 } \
+	    inside {print} END {if (!complete || inside || !server) exit 1}' > "$$tmp"; \
+	  mv -f -- "$$tmp" "$(KUBECONFIG_LOCAL)"
 	@echo
 	@echo "Wrote $(KUBECONFIG_LOCAL)."
 	@echo
