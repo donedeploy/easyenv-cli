@@ -24,6 +24,7 @@ spec:
               vars:
                 kubespray_dir: /opt/kubespray
                 kubespray_branch: release-2.29
+                expected_siblings: 2  # Number of worker machines below.
                 inventory_path: /home/easyenv/kubespray-inventory.yaml
                 box_configs_path: /etc/box_configs.json
               tasks:
@@ -81,11 +82,10 @@ spec:
                   delay: 10
                   until: >-
                     box_resp.status == 200
-                    and (box_resp.json.sibling_boxes | default([]) | length > 0)
+                    and (box_resp.json.sibling_boxes | default([]) | length == expected_siblings)
                     and (box_resp.json.sibling_boxes
-                         | map(attribute='settings')
-                         | map(attribute='ip_address')
-                         | select('truthy')
+                         | map(attribute='settings.ip_address', default='')
+                         | select
                          | list
                          | length
                          == (box_resp.json.sibling_boxes | length))
@@ -107,21 +107,21 @@ spec:
                       # Generated at boot by install-kubespray. Regenerated only on `easyenv here up` after re-creation.
                       all:
                         hosts:
-                      {%- for box in all_boxes %}
+                      {% for box in all_boxes %}
                           {{ box.host | lower }}:
                             ansible_host: {{ box.ip_address }}
                             ansible_user: {{ box.username | default('easyenv') }}
                             ansible_python_interpreter: /usr/bin/python3
-                      {%- endfor %}
+                      {% endfor %}
                         children:
                           kube_control_plane:
                             hosts:
                               {{ self_host }}:
                           kube_node:
                             hosts:
-                      {%- for box in all_boxes %}
+                      {% for box in all_boxes %}
                               {{ box.host | lower }}:
-                      {%- endfor %}
+                      {% endfor %}
                           etcd:
                             hosts:
                               {{ self_host }}:

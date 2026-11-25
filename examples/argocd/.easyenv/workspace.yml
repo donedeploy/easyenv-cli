@@ -13,6 +13,7 @@ spec:
       resources:
         cpu: 4
         ram_mb: 4096
+      ports: ["8080"]
       stacks:
         - recipe: argocd
 

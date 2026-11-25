@@ -26,23 +26,6 @@ sudo kubectl get pods -n argocd
 
 You should see all three nodes `Ready` and the ArgoCD pods `Running`.
 
-To open the ArgoCD UI in your browser, port-forward from inside the box and forward to your laptop:
-
-```sh
-# inside the box
-sudo kubectl port-forward -n argocd svc/argocd-server 8080:443 --address 0.0.0.0 &
-exit
-```
-
-Then on your laptop:
-
-```sh
-# add ports: ["8080"] to .easyenv/workspace.yml first, or use machine port-forward:
-easyenv machine port-forward k8s-1 -w <ws-uuid> 8080:8080
-```
-
-(Or just stay inside the box and use the CLI: `argocd login`, `argocd app create`, etc.)
-
 The default admin password is stored in the secret `argocd-initial-admin-secret`:
 
 ```sh
@@ -50,7 +33,15 @@ sudo kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 ```
 
-Tear down:
+To open the UI, keep the service forward running in your SSH terminal:
+
+```sh
+sudo kubectl port-forward -n argocd svc/argocd-server 8080:443
+```
+
+From a second terminal in the local example directory, run `make expose`. When the tunnel is ready, open <https://localhost:8080>. The example uses Argo CD's default self-signed certificate.
+
+To tear down, press Ctrl-C in the local tunnel terminal, then run:
 
 ```sh
 make down
@@ -65,7 +56,7 @@ Each target echoes its underlying `easyenv` command before running.
 | `make up`     | `easyenv here up --wait 10m` | Create + start the 3-box workspace. The `argocd` stack `kubectl apply`s ArgoCD onto k8s-1 during boot. |
 | `make deploy` | (alias for `make up`)        | The catalog stack does everything during `up`; deploy is just an alias. |
 | `make ssh`    | `easyenv here ssh`           | Open an interactive shell on `k8s-1`. |
-| `make expose` | `easyenv here expose`        | No `ports[]` is set in this example by default — add one to `workspace.yml` first. |
+| `make expose` | `easyenv here expose`        | Forward local port 8080 to the service forward running on k8s-1. |
 | `make down`   | `easyenv here down --force`  | Stop and delete the workspace. |
 
 ## How it works

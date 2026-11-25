@@ -13,13 +13,12 @@ One Ubuntu box. The `docker-run` catalog stack handles installing Docker, pullin
 ```sh
 cd examples/docker-image
 make up
-make expose &
-curl -s http://localhost:80 | grep -i welcome
+make expose
 ```
 
-You should see nginx's welcome page HTML.
+Keep the tunnel running. In a second terminal, run `curl -fsS http://localhost:80 | grep -i welcome` to check the nginx welcome page.
 
-`Ctrl-C` the `expose` background job, then:
+Press Ctrl-C in the tunnel terminal, then run:
 
 ```sh
 make down
@@ -33,7 +32,7 @@ Each target echoes its underlying `easyenv` command before running.
 |--------|------|--------------|
 | `make up`     | `easyenv here up --wait 5m` | Create + start the workspace. The `docker-run` stack pulls and starts nginx during boot. |
 | `make deploy` | (alias for `make up`)       | No post-boot work — the stack does everything during `up`. |
-| `make expose` | `easyenv here expose`       | Forward the workspace's `ports[]` (here: 80) to localhost. |
+| `make expose` | `easyenv here expose`       | Forward the workspace's `ports[]` from local port 80 to port 80 on the box. |
 | `make ssh`    | `easyenv here ssh`          | Open an interactive shell on the box. |
 | `make down`   | `easyenv here down --force` | Stop and delete the workspace. |
 

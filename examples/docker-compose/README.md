@@ -12,12 +12,12 @@ One Ubuntu box runs Redis + Redis Commander defined in a compose script. Open th
 ```sh
 cd examples/docker-compose
 make up
-make expose &
+make expose
 ```
 
 Open <http://localhost:8081> in your browser — Redis Commander loads, and you can poke at the empty `local` connection.
 
-To populate it:
+Keep the tunnel running. To populate Redis, open a second terminal in this example directory:
 
 ```sh
 make ssh
@@ -28,7 +28,7 @@ docker exec -it $(docker ps --filter ancestor=redis:7-alpine -q) redis-cli
 
 Refresh the Commander UI — your key shows up.
 
-Tear down:
+Press Ctrl-C in the local tunnel terminal, then tear down:
 
 ```sh
 make down

@@ -80,7 +80,7 @@ machines:
 After `make up` returns, all three boxes are reachable. `make deploy` runs `easyenv here sync` then `easyenv here run --cmd 'make remote-replicate'`, which on the primary executes `playbooks/configure-replication.yml`. That playbook:
 
 - Edits `postgresql.conf` (`wal_level=replica`, `max_wal_senders=10`, `hot_standby=on`).
-- Adds `pg_hba.conf` entries for the replicas.
+- Resolves each replica on the primary and grants its individual IP address replication access in `pg_hba.conf`. Other remote database clients need their own access rule.
 - Creates the `replicator` role.
 - On each replica: waits for primary:5432, stops Postgres, wipes `/var/lib/postgresql/16/main`, runs `pg_basebackup -X stream -R`, starts Postgres.
 - Drops a marker file so re-running `make deploy` doesn't re-bootstrap healthy replicas.
@@ -89,7 +89,7 @@ The `wait_for: host=pg-primary port=5432 timeout=300` task at the top of the rep
 
 ### Inventory
 
-`inventory.ini` is a static file keyed off box titles (`pg-primary`, `pg-replica-1`, `pg-replica-2`) — `cross_connection: true` makes those resolvable from the primary.
+`inventory.ini` is a static file keyed off box titles (`pg-primary`, `pg-replica-1`, `pg-replica-2`). The primary resolves these names through the workspace host entries.
 
 ### Credentials
 

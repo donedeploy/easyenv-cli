@@ -15,14 +15,14 @@ A real-world `docker-compose` stack: Airflow 2.10.5 with LocalExecutor + Postgre
 cd examples/airflow
 make up                # ~10 min — Airflow image is large
 make sync              # push dags/hello_dag.py
-make expose &
+make expose            # leave the tunnel running
 ```
 
 Open <http://localhost:8080> — log in with `airflow` / `airflow`. You'll see `hello_easyenv` in the DAG list (it may take a minute for the scheduler to pick it up after sync).
 
 Trigger it manually with the play button, or wait for the daily schedule.
 
-Tear down:
+Press Ctrl-C in the tunnel terminal, then tear down:
 
 ```sh
 make down

@@ -99,7 +99,7 @@ Workers have no stacks — plain Ubuntu, configured remotely by Kubespray.
 Inside the install stack:
 
 1. **Read** `/etc/box_configs.json` to get the API base URL and bearer token.
-2. **`GET /v1/vm/box`** with retries: keep retrying until every sibling has a non-empty `ip_address`. 30 × 10s = 5-minute ceiling.
+2. **`GET /v1/vm/box`** with retries: keep retrying until both workers are listed and each has a non-empty `ip_address`. 30 × 10s = 5-minute ceiling.
 3. **Render** `~/kubespray-inventory.yaml` via `copy: content:` with inline Jinja. Each host's `ansible_host` is the sibling's real IP, host keys are lowercased (kubespray's preinstall regex requires lowercase), and the running box becomes the control plane (`kube_control_plane` and `etcd` groups).
 
 ### `Makefile`
@@ -119,14 +119,14 @@ Re-run `make deploy` — Kubespray plays are idempotent and pick up where they l
 `make reset` to wipe via Kubespray's `reset.yml`, then `make deploy` again. Faster than `make down` + `make up`.
 
 **You added/removed a worker**
-The inventory was rendered at boot from the snapshot of siblings at that moment. If the workspace changes, run `make down && make up` to regenerate.
+The inventory was rendered at boot from the snapshot of siblings at that moment. Update `expected_siblings` to match the worker count before recreating the workspace.
 
 ## Connecting kubectl from your laptop
 
 `make kube` pipes `sudo cat /etc/kubernetes/admin.conf` from the master and writes it to `./kubeconfig`. Two adjustments along the way:
 
 - **awk filter** strips the `easyenv here run` rsync header (`sending incremental file list`, `sent X bytes ...`, `total size is …`). The remote target wraps the actual file content in `===KUBECONFIG-BEGIN===`/`===KUBECONFIG-END===` markers so we can extract it reliably regardless of what else lands on stdout.
-- **sed rewrite** changes `server: https://<master-ip>:6443` to `server: https://127.0.0.1:6443`. Kubespray includes `127.0.0.1` in the apiserver cert SANs by default, so TLS verification still works once you tunnel.
+- **Endpoint rewrite** changes `server: https://<master-ip>:6443` to `server: https://127.0.0.1:6443`. Kubespray includes `127.0.0.1` in the apiserver cert SANs by default, so TLS verification still works once you tunnel.
 
 To use it:
 
